@@ -20,7 +20,8 @@ enum QUANTIZATION
 {
     QUANTIZATION_MAX = 0,
     QUANTIZATION_ALFA_GAMMMA,
-    QUANTIZATION_STD_MATRIX
+    QUANTIZATION_STD_MATRIX,
+    QUANTIZATION_STD_MATRIX_HALF
 };
 
 class RenderArea : public QWidget
@@ -52,7 +53,7 @@ class RenderArea : public QWidget
         void QuantizationMatrix(float** inData, int32_t** outData, uint32_t width, uint32_t height, const float matrix[ 8 ][ 8 ] );
         void ZigZag( int32_t** inData, int32_t width, int32_t height, int32_t* outData );
         void Deflate( const void* data, uint32_t dataLengh, void* out, uint32_t& outLength );
-        void Compress(DOWNSAMPLING downsampling, QUANTIZATION quantization, uint32_t qParam1, uint32_t qParam2, uint32_t &uncompressed, uint32_t &compressed );
+        void Compress(DOWNSAMPLING downsampling, QUANTIZATION quantization, uint32_t qParam1, uint32_t qParam2, uint32_t qParam3, uint32_t qParam4, uint32_t &uncompressed, uint32_t &compressed );
 
         // jpeg decompress
         void Upsampling( DOWNSAMPLING downsampling );

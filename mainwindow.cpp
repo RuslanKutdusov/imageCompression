@@ -222,6 +222,8 @@ void MainWindow::on_pushButton_clicked()
 
     uint32_t qParam1;
     uint32_t qParam2;
+    uint32_t qParam3;
+    uint32_t qParam4;
     if( ui->quantMax->isChecked() )
     {
         q = QUANTIZATION_MAX;
@@ -233,10 +235,16 @@ void MainWindow::on_pushButton_clicked()
         q = QUANTIZATION_ALFA_GAMMMA;
         qParam1 = ui->alfa->text().toUInt();
         qParam2 = ui->gamma->text().toUInt();
+        qParam3 = ui->alfaC->text().toUInt();
+        qParam4 = ui->gammaC->text().toUInt();
     }
     else if( ui->quantStd->isChecked() )
     {
         q = QUANTIZATION_STD_MATRIX;
+    }
+    else if( ui->quantStdHalf->isChecked() )
+    {
+        q = QUANTIZATION_STD_MATRIX_HALF;
     }
     else
     {
@@ -249,7 +257,7 @@ void MainWindow::on_pushButton_clicked()
     }
 
     uint32_t uc, c;
-    imageWidget1->Compress( ds, q, qParam1, qParam2, uc, c );
+    imageWidget1->Compress( ds, q, qParam1, qParam2, qParam3, qParam4, uc, c );
     char buf[ 1024 ];
     sprintf( buf, "Uncompressed: %u", uc / 1024 );
     ui->uncompressed->setText( buf );
@@ -286,6 +294,28 @@ const float g_stdQuantizationMatrixCbCr[ 8 ][ 8 ] = {
     { 99.0f,   99.0f,   99.0f,   99.0f,   99.0f,   99.0f,   99.0f,   99.0f },
     { 99.0f,   99.0f,   99.0f,   99.0f,   99.0f,   99.0f,   99.0f,   99.0f },
     { 99.0f,   99.0f,   99.0f,   99.0f,   99.0f,   99.0f,   99.0f,   99.0f }
+};
+
+const float g_stdQuantizationMatrixYHalf[ 8 ][ 8 ] = {
+    { 16.0f * 0.5f,   11.0f * 0.5f,   10.0f * 0.5f,   16.0f * 0.5f,   24.0f * 0.5f,   40.0f * 0.5f,   51.0f * 0.5f,   61.0f * 0.5f  },
+    { 12.0f * 0.5f,   12.0f * 0.5f,   14.0f * 0.5f,   19.0f * 0.5f,   26.0f * 0.5f,   58.0f * 0.5f,   60.0f * 0.5f,   55.0f * 0.5f  },
+    { 14.0f * 0.5f,   13.0f * 0.5f,   16.0f * 0.5f,   24.0f * 0.5f,   40.0f * 0.5f,   57.0f * 0.5f,   69.0f * 0.5f,   56.0f * 0.5f  },
+    { 14.0f * 0.5f,   17.0f * 0.5f,   22.0f * 0.5f,   29.0f * 0.5f,   51.0f * 0.5f,   87.0f * 0.5f,   80.0f * 0.5f,   62.0f * 0.5f  },
+    { 18.0f * 0.5f,   22.0f * 0.5f,   37.0f * 0.5f,   56.0f * 0.5f,   68.0f * 0.5f,  109.0f * 0.5f,  103.0f * 0.5f,   77.0f * 0.5f  },
+    { 24.0f * 0.5f,   35.0f * 0.5f,   55.0f * 0.5f,   64.0f * 0.5f,   81.0f * 0.5f,  104.0f * 0.5f,  113.0f * 0.5f,   92.0f * 0.5f  },
+    { 49.0f * 0.5f,   64.0f * 0.5f,   78.0f * 0.5f,   87.0f * 0.5f,  103.0f * 0.5f,  121.0f * 0.5f,  120.0f * 0.5f,  101.0f * 0.5f  },
+    { 72.0f * 0.5f,   92.0f * 0.5f,   95.0f * 0.5f,   98.0f * 0.5f,  112.0f * 0.5f,  100.0f * 0.5f,  103.0f * 0.5f,   99.0f * 0.5f  }
+};
+
+const float g_stdQuantizationMatrixCbCrHalf[ 8 ][ 8 ] = {
+    { 17.0f * 0.5f,   18.0f * 0.5f,   24.0f * 0.5f,   47.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f },
+    { 18.0f * 0.5f,   21.0f * 0.5f,   26.0f * 0.5f,   66.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f },
+    { 24.0f * 0.5f,   26.0f * 0.5f,   56.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f },
+    { 47.0f * 0.5f,   66.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f },
+    { 99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f },
+    { 99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f },
+    { 99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f },
+    { 99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f,   99.0f * 0.5f }
 };
 
 const uint32_t g_zigzagMap[] = {
@@ -659,7 +689,7 @@ void RenderArea::Deflate( const void* data, uint32_t dataLengh, void* out, uint3
     outLength = ( char* )defstream.next_out - ( char* )out;
 }
 
-void RenderArea::Compress(DOWNSAMPLING downsampling, QUANTIZATION quantization, uint32_t qParam1, uint32_t qParam2 , uint32_t& uncompressed, uint32_t& compressed)
+void RenderArea::Compress(DOWNSAMPLING downsampling, QUANTIZATION quantization, uint32_t qParam1, uint32_t qParam2, uint32_t qParam3, uint32_t qParam4, uint32_t& uncompressed, uint32_t& compressed)
 {
     Downsampling( downsampling );
     DCT( Y, dctY, m_imageContainer.width(), m_imageContainer.height() );
@@ -669,11 +699,13 @@ void RenderArea::Compress(DOWNSAMPLING downsampling, QUANTIZATION quantization, 
     int32_t** quantizedY  = new int32_t*[ 512 ];
     int32_t** quantizedCr = new int32_t*[ 512 ];
     int32_t** quantizedCb = new int32_t*[ 512 ];
+    uint8_t** idctY = new uint8_t*[ 512 ];
     for( uint32_t i = 0; i < 512; i++ )
     {
         quantizedY [ i ] = new int32_t[ 512 ];
         quantizedCr[ i ] = new int32_t[ 512 ];
         quantizedCb[ i ] = new int32_t[ 512 ];
+        idctY[ i ] = new uint8_t[ 512 ];
     }
     if( quantization == QUANTIZATION_MAX )
     {
@@ -684,14 +716,20 @@ void RenderArea::Compress(DOWNSAMPLING downsampling, QUANTIZATION quantization, 
     else if( quantization == QUANTIZATION_ALFA_GAMMMA )
     {
         QuantizationAlfaGamma( dctY, quantizedY, m_imageContainer.width(), m_imageContainer.height(), qParam1, qParam2 );
-        QuantizationAlfaGamma( dctCb, quantizedCr, dsCbCrWidth, dsCbCrHeight, qParam1, qParam2 );
-        QuantizationAlfaGamma( dctCr, quantizedCb, dsCbCrWidth, dsCbCrHeight, qParam1, qParam2 );
+        QuantizationAlfaGamma( dctCb, quantizedCr, dsCbCrWidth, dsCbCrHeight, qParam3, qParam4 );
+        QuantizationAlfaGamma( dctCr, quantizedCb, dsCbCrWidth, dsCbCrHeight, qParam3, qParam4 );
     }
     else if( quantization == QUANTIZATION_STD_MATRIX )
     {
         QuantizationMatrix( dctY, quantizedY, m_imageContainer.width(), m_imageContainer.height(), g_stdQuantizationMatrixY );
         QuantizationMatrix( dctCb, quantizedCr, dsCbCrWidth, dsCbCrHeight, g_stdQuantizationMatrixCbCr );
         QuantizationMatrix( dctCr, quantizedCb, dsCbCrWidth, dsCbCrHeight, g_stdQuantizationMatrixCbCr );
+    }
+    else if( quantization == QUANTIZATION_STD_MATRIX_HALF )
+    {
+        QuantizationMatrix( dctY, quantizedY, m_imageContainer.width(), m_imageContainer.height(), g_stdQuantizationMatrixYHalf );
+        QuantizationMatrix( dctCb, quantizedCr, dsCbCrWidth, dsCbCrHeight, g_stdQuantizationMatrixCbCrHalf );
+        QuantizationMatrix( dctCr, quantizedCb, dsCbCrWidth, dsCbCrHeight, g_stdQuantizationMatrixCbCrHalf );
     }
 
     int32_t YLine[ 512 * 512 ];
@@ -726,8 +764,8 @@ void RenderArea::Compress(DOWNSAMPLING downsampling, QUANTIZATION quantization, 
     else if( quantization == QUANTIZATION_ALFA_GAMMMA )
     {
         DequantizationAlfaGamma( quantizedY,  dctY,  m_imageContainer.width(), m_imageContainer.height(), qParam1, qParam2 );
-        DequantizationAlfaGamma( quantizedCr, dctCb, dsCbCrWidth, dsCbCrHeight, qParam1, qParam2 );
-        DequantizationAlfaGamma( quantizedCb, dctCr, dsCbCrWidth, dsCbCrHeight, qParam1, qParam2 );
+        DequantizationAlfaGamma( quantizedCr, dctCb, dsCbCrWidth, dsCbCrHeight, qParam3, qParam4 );
+        DequantizationAlfaGamma( quantizedCb, dctCr, dsCbCrWidth, dsCbCrHeight, qParam3, qParam4 );
     }
     else if( quantization == QUANTIZATION_STD_MATRIX )
     {
@@ -735,22 +773,65 @@ void RenderArea::Compress(DOWNSAMPLING downsampling, QUANTIZATION quantization, 
         DequantizationMatrix( quantizedCr, dctCb, dsCbCrWidth, dsCbCrHeight, g_stdQuantizationMatrixCbCr );
         DequantizationMatrix( quantizedCb, dctCr, dsCbCrWidth, dsCbCrHeight, g_stdQuantizationMatrixCbCr );
     }
+    else if( quantization == QUANTIZATION_STD_MATRIX )
+    {
+        DequantizationMatrix( quantizedY,  dctY,  m_imageContainer.width(), m_imageContainer.height(), g_stdQuantizationMatrixYHalf );
+        DequantizationMatrix( quantizedCr, dctCb, dsCbCrWidth, dsCbCrHeight, g_stdQuantizationMatrixCbCrHalf );
+        DequantizationMatrix( quantizedCb, dctCr, dsCbCrWidth, dsCbCrHeight, g_stdQuantizationMatrixCbCrHalf );
+    }
 
-    IDCT( Y, dctY, m_imageContainer.width(), m_imageContainer.height() );
+    IDCT( idctY, dctY, m_imageContainer.width(), m_imageContainer.height() );
     IDCT( dsCb, dctCb, dsCbCrWidth, dsCbCrHeight );
     IDCT( dsCr, dctCr, dsCbCrWidth, dsCbCrHeight );
-    Upsampling( downsampling );
-    YCbCr2RGB();
+    //Upsampling( downsampling );
+    //YCbCr2RGB();
+
+    uint32_t xStep = 1;
+    uint32_t yStep = 1;
+    if( downsampling == DOWNSAMPLING_NONE )
+    {
+    }
+    else if( downsampling == DOWNSAMPLING_2h2v )
+    {
+        xStep = 2;
+        yStep = 2;
+    }
+    else if( downsampling == DOWNSAMPLING_2h1v )
+    {
+        xStep = 2;
+        yStep = 1;
+    }
+    else if( downsampling == DOWNSAMPLING_1h2v )
+    {
+        xStep = 1;
+        yStep = 2;
+    }
+
+    //
+    for( int32_t x = 0; x < m_imageContainer.width(); x++ )
+        for( int32_t y = 0; y < m_imageContainer.height(); y++ )
+        {
+            uint8_t Cb = dsCb[ x / xStep ][ y / yStep ];
+            uint8_t Cr = dsCr[ x / xStep ][ y / yStep ];
+
+            uint8_t R = ( float )idctY[ x ][ y ] + 1.402f   * ( ( float )Cr - 128.0f );
+            uint8_t G = ( float )idctY[ x ][ y ] - 0.34414f * ( ( float )Cb - 128.0f ) - 0.71414f * ( ( float )Cr - 128.0f );
+            uint8_t B = ( float )idctY[ x ][ y ] + 1.772f   * ( ( float )Cb - 128.0f );
+            m_renderarea.setPixel( x, y, qRgb( R, G, B ) );
+        }
+    repaint();
 
     for( uint32_t i = 0; i < 512; i++ )
     {
         delete[] quantizedY[ i ];
         delete[] quantizedCr[ i ];
         delete[] quantizedCb[ i ];
+        delete[] idctY[ i ];
     }
     delete[] quantizedY;
     delete[] quantizedCr;
     delete[] quantizedCb;
+    delete[] idctY;
 }
 
 void RenderArea::Upsampling( DOWNSAMPLING downsampling )

@@ -697,9 +697,9 @@ void RenderArea::Compress(DOWNSAMPLING downsampling, QUANTIZATION quantization, 
     int32_t YLine[ 512 * 512 ];
     int32_t CbLine[ 512 * 512 ];
     int32_t CrLine[ 512 * 512 ];
-    uint32_t YlineLength = m_imageContainer.width() * m_imageContainer.height();
-    uint32_t CbLineLength = dsCbCrWidth * dsCbCrHeight;
-    uint32_t CrLineLength = dsCbCrWidth * dsCbCrHeight;
+    uint32_t YLineLength = m_imageContainer.width() * m_imageContainer.height() * 3;
+    uint32_t CbLineLength = dsCbCrWidth * dsCbCrHeight * 3;
+    uint32_t CrLineLength = dsCbCrWidth * dsCbCrHeight * 3;
     ZigZag( quantizedY, m_imageContainer.width(), m_imageContainer.height(), YLine );
     ZigZag( quantizedCb, dsCbCrWidth, dsCbCrHeight, CbLine );
     ZigZag( quantizedCr, dsCbCrWidth, dsCbCrHeight, CrLine );
@@ -710,10 +710,10 @@ void RenderArea::Compress(DOWNSAMPLING downsampling, QUANTIZATION quantization, 
     uint32_t YCompressedLength;
     uint32_t CbCompressedLength;
     uint32_t CrCompressedLength;
-    Deflate( YLine, YlineLength, YCompressedline, YCompressedLength );
+    Deflate( YLine, YLineLength, YCompressedline, YCompressedLength );
     Deflate( CbLine, CbLineLength, CbCompressedLine, CbCompressedLength );
     Deflate( CrLine, CrLineLength, CrCompressedLine, CrCompressedLength );
-    uncompressed = YlineLength + CbLineLength + CrLineLength;
+    uncompressed = YLineLength + CbLineLength + CrLineLength;
     compressed = YCompressedLength + CbCompressedLength + CrCompressedLength;
 
     // decompress

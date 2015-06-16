@@ -24,6 +24,16 @@ enum QUANTIZATION
     QUANTIZATION_STD_MATRIX_HALF
 };
 
+enum WAVELET
+{
+    WAVELET_D2 = 0,
+    WAVELET_D4,
+    WAVELET_D6,
+    WAVELET_D8,
+
+    WAVELET_COUNT
+};
+
 class RenderArea : public QWidget
 {
     Q_OBJECT
@@ -60,6 +70,9 @@ class RenderArea : public QWidget
         void DequantizationMax( int32_t** inData, float** outData, uint32_t width, uint32_t height, uint32_t n );
         void DequantizationAlfaGamma( int32_t** inData, float** outData, uint32_t width, uint32_t height, uint32_t alfa, uint32_t gamma );
         void DequantizationMatrix( int32_t** inData, float** outData, uint32_t width, uint32_t height, const float matrix[ 8 ][ 8 ] );
+
+        // wavelets
+        void DWT( uint8_t threshold );
 
         //
         void ShowDsCb();
@@ -156,6 +169,8 @@ private slots:
     void on_dctCr_clicked();
 
     void on_pushButton_clicked();
+
+    void on_dwtCompressBtn_clicked();
 
 protected:
     //void paintEvent(QPaintEvent *event);

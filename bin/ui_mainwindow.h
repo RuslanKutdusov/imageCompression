@@ -20,6 +20,7 @@
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QRadioButton>
+#include <QtWidgets/QSlider>
 #include <QtWidgets/QSpinBox>
 #include <QtWidgets/QTabWidget>
 #include <QtWidgets/QWidget>
@@ -87,6 +88,14 @@ public:
     QWidget *tab_2;
     QPushButton *calcPSNR;
     QLabel *PSNRLabel;
+    QWidget *tab_3;
+    QRadioButton *radioButton;
+    QRadioButton *radioButton_2;
+    QRadioButton *radioButton_3;
+    QRadioButton *radioButton_4;
+    QSlider *horizontalSlider;
+    QLabel *label_7;
+    QPushButton *dwtCompressBtn;
     QMenuBar *menuBar;
     QButtonGroup *buttonGroup;
 
@@ -286,6 +295,33 @@ public:
         PSNRLabel->setObjectName(QStringLiteral("PSNRLabel"));
         PSNRLabel->setGeometry(QRect(10, 40, 151, 17));
         tabWidget->addTab(tab_2, QString());
+        tab_3 = new QWidget();
+        tab_3->setObjectName(QStringLiteral("tab_3"));
+        radioButton = new QRadioButton(tab_3);
+        radioButton->setObjectName(QStringLiteral("radioButton"));
+        radioButton->setGeometry(QRect(20, 10, 61, 22));
+        radioButton_2 = new QRadioButton(tab_3);
+        radioButton_2->setObjectName(QStringLiteral("radioButton_2"));
+        radioButton_2->setGeometry(QRect(20, 30, 51, 22));
+        radioButton_3 = new QRadioButton(tab_3);
+        radioButton_3->setObjectName(QStringLiteral("radioButton_3"));
+        radioButton_3->setGeometry(QRect(20, 50, 51, 22));
+        radioButton_4 = new QRadioButton(tab_3);
+        radioButton_4->setObjectName(QStringLiteral("radioButton_4"));
+        radioButton_4->setGeometry(QRect(20, 70, 51, 22));
+        horizontalSlider = new QSlider(tab_3);
+        horizontalSlider->setObjectName(QStringLiteral("horizontalSlider"));
+        horizontalSlider->setGeometry(QRect(100, 30, 160, 29));
+        horizontalSlider->setMaximum(255);
+        horizontalSlider->setOrientation(Qt::Horizontal);
+        horizontalSlider->setTickPosition(QSlider::TicksBelow);
+        label_7 = new QLabel(tab_3);
+        label_7->setObjectName(QStringLiteral("label_7"));
+        label_7->setGeometry(QRect(100, 10, 91, 17));
+        dwtCompressBtn = new QPushButton(tab_3);
+        dwtCompressBtn->setObjectName(QStringLiteral("dwtCompressBtn"));
+        dwtCompressBtn->setGeometry(QRect(90, 80, 99, 27));
+        tabWidget->addTab(tab_3, QString());
         MainWindow->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(MainWindow);
         menuBar->setObjectName(QStringLiteral("menuBar"));
@@ -294,7 +330,7 @@ public:
 
         retranslateUi(MainWindow);
 
-        tabWidget->setCurrentIndex(0);
+        tabWidget->setCurrentIndex(2);
 
 
         QMetaObject::connectSlotsByName(MainWindow);
@@ -353,6 +389,13 @@ public:
         calcPSNR->setText(QApplication::translate("MainWindow", "calcPSNR", 0));
         PSNRLabel->setText(QApplication::translate("MainWindow", "PSNR: --", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab_2), QApplication::translate("MainWindow", "PSNR", 0));
+        radioButton->setText(QApplication::translate("MainWindow", "D2", 0));
+        radioButton_2->setText(QApplication::translate("MainWindow", "D4", 0));
+        radioButton_3->setText(QApplication::translate("MainWindow", "D6", 0));
+        radioButton_4->setText(QApplication::translate("MainWindow", "D8", 0));
+        label_7->setText(QApplication::translate("MainWindow", "Threshold:", 0));
+        dwtCompressBtn->setText(QApplication::translate("MainWindow", "Compress", 0));
+        tabWidget->setTabText(tabWidget->indexOf(tab_3), QApplication::translate("MainWindow", "Wavelet", 0));
     } // retranslateUi
 
 };

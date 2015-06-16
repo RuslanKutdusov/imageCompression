@@ -157,6 +157,7 @@ void MainWindow::on_calcPSNR_clicked()
     }
 
     int N = imageWidget1->m_renderarea.width();
+    float sum = 0.0f;
     for( int x = 0; x < N; x++ )
         for( int y = 0; y < N; y++ )
         {
@@ -166,8 +167,9 @@ void MainWindow::on_calcPSNR_clicked()
             float dg = qGreen( rgb1 ) - qGreen( rgb2 );
             float db = qBlue( rgb1 ) - qBlue( rgb2 );
             float diff = dr * dr + dg * dg + db * db;
-            m_psnr = 10.0f * log10( 3.0f * 255.0f * 255.0f * ( float )N * ( float )N  / diff );
+            sum += diff;
         }
+    m_psnr = 10.0f * log10( 3.0f * 255.0f * 255.0f * ( float )N * ( float )N  / sum );
     char buf[ 1024 ];
     sprintf( buf, "PSNR: %f", m_psnr );
     ui->PSNRLabel->setText( buf );
@@ -196,6 +198,11 @@ void MainWindow::on_dctCb_clicked()
 void MainWindow::on_dctCr_clicked()
 {
     imageWidget1->showDctCr();
+}
+
+void MainWindow::on_dwtCompressBtn_clicked()
+{
+    imageWidget1->DWT( ui->horizontalSlider->value() );
 }
 
 void MainWindow::on_pushButton_clicked()
@@ -328,6 +335,14 @@ const uint32_t g_zigzagMap[] = {
        58, 59, 52, 45, 38, 31, 39, 46,
        53, 60, 61, 54, 47, 55, 62, 63
 };
+
+const float g_d2[] = { 1.0f / sqrtf( 2.0f ), 1.0f / sqrtf( 2.0f ) };
+const float g_d4[] = { 0.6830127f / sqrtf( 2.0f ), 1.183027f / sqrtf( 2.0f ), 0.3169873f / sqrtf( 2.0f ), -0.183027f / sqrtf( 2.0f ) };
+const float g_d6[] = { 0.47046721f / sqrtf( 2.0f ), 1.14111692f / sqrtf( 2.0f ), 0.650365f / sqrtf( 2.0f ), -0.19093442 / sqrtf( 2.0f ),
+                        -0.12083221f / sqrtf( 2.0f ), 0.0498175 / sqrtf( 2.0f ) };
+const float g_d8[] = { 0.32580343f / sqrtf( 2.0f ), 1.01094572f / sqrtf( 2.0f ), 0.8922014f / sqrtf( 2.0f ), -0.03967503f / sqrtf( 2.0f ),
+                       -0.26450717f / sqrtf( 2.0f ), 0.0436163f / sqrtf( 2.0f ), 0.0465036f / sqrtf( 2.0f ), -0.01498699f / sqrtf( 2.0f ) };
+const int32_t g_waveletCoeffsNum[ WAVELET_COUNT ] = { 2, 4, 6, 8 };
 
 RenderArea::RenderArea(QWidget *parent)
     : QWidget( parent )
@@ -891,6 +906,155 @@ void RenderArea::DequantizationMatrix( int32_t** inData, float** outData, uint32
                 for( uint32_t j = 0; j < 8; j++ )
                     outData[ bx * 8 + i ][ by * 8 + j ] = inData[ bx * 8 + i ][ by * 8 + j ] * matrix[ i ][ j ];
         }
+}
+
+void GetHpfCoeffs( const float* cl, int32_t n, float* ch )
+{
+    float sign = -1.0f;
+    for( int32_t i = 0; i < n; i++ )
+    {
+        sign *= -1.0f;
+        ch[ i ] = sign * cl[ n - i - 1 ];
+    }
+}
+
+void GetICoeffs( const float* cl, const float* ch, int32_t n, float* icl, float* ich )
+{
+    icl[ 0 ] = cl[ n - 2 ];
+    icl[ 1 ] = ch[ n - 2 ];
+
+    ich[ 0 ] = cl[ n - 1 ];
+    ich[ 1 ] = ch[ n - 1 ];
+
+    for( int32_t k = 2; k < n; k += 2 )
+    {
+        icl[ k + 0 ] = cl[ k - 2 ];
+        icl[ k + 1 ] = ch[ k - 2 ];
+
+        ich[ k + 0 ] = cl[ k - 1 ];
+        ich[ k + 1 ] = ch[ k - 1 ];
+    }
+}
+
+void DWT1( float* inData, float* outData, int32_t dataLen, int32_t width, const float* cl, const float* ch, int32_t coeffsNum, int32_t delta )
+{
+    for( int32_t k = 0; k < dataLen; k += 2 )
+    {
+        float lf = 0.0f;
+        float hf = 0.0f;
+        for( int32_t i = 0; i < coeffsNum; i++ )
+        {
+            int32_t index = k + i - delta;
+            index = index >= 0 ? index : dataLen + index;
+            lf += inData[ ( index % dataLen ) * width ] * cl[ i ];
+            hf += inData[ ( index % dataLen ) * width ] * ch[ i ];
+        }
+        outData[ ( k + 0 ) * width ] = lf;
+        outData[ ( k + 1 ) * width ] = hf;
+    }
+}
+
+void DWT2( uint8_t** inData, uint8_t** outData, uint32_t width, uint32_t height, uint8_t threshold )
+{
+//    float data[] = { 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f };
+//    float result[ 8 ];
+//    WAVELET wavelet = WAVELET_D8;
+//    int32_t coeffsNum = g_waveletCoeffsNum[ wavelet ];
+//    const float* cl;
+//    float ch[ 8 ], icl[ 8 ], ich[ 8 ];
+//    switch( wavelet )
+//    {
+//        case( WAVELET_D2 ):
+//            cl = g_d2;
+//            break;
+//        case( WAVELET_D4 ):
+//            cl = g_d4;
+//            break;
+//        case( WAVELET_D6 ):
+//            cl = g_d6;
+//            break;
+//        case( WAVELET_D8 ):
+//            cl = g_d8;
+//            break;
+//    }
+//    GetHpfCoeffs( cl, coeffsNum, ch );
+//    GetICoeffs( cl, ch, coeffsNum, icl, ich );
+//    DWT1( data, result, sizeof( data ) / sizeof( data[ 0 ] ), cl, ch, coeffsNum, 0 );
+//    DWT1( result, data, sizeof( data ) / sizeof( data[ 0 ] ), icl, ich, coeffsNum, coeffsNum - 2 );
+//    DWT1( data, result, sizeof( data ) / sizeof( data[ 0 ] ), icl, ich, coeffsNum, coeffsNum - 2 );
+
+    WAVELET wavelet = WAVELET_D2;
+    int32_t coeffsNum = g_waveletCoeffsNum[ wavelet ];
+    const float* cl;
+    float ch[ 8 ], icl[ 8 ], ich[ 8 ];
+    switch( wavelet )
+    {
+        case( WAVELET_D2 ):
+            cl = g_d2;
+            break;
+        case( WAVELET_D4 ):
+            cl = g_d4;
+            break;
+        case( WAVELET_D6 ):
+            cl = g_d6;
+            break;
+        case( WAVELET_D8 ):
+            cl = g_d8;
+            break;
+    }
+    GetHpfCoeffs( cl, coeffsNum, ch );
+    GetICoeffs( cl, ch, coeffsNum, icl, ich );
+
+    float* imageFloat = new float[ width * height ];
+    float* imageFloat2 = new float[ width * height ];
+    for( uint32_t i = 0; i < height; i++ )
+    {
+        for( uint32_t j = 0; j < width; j++ )
+            imageFloat[ i * width + j ] = inData[ j ][ i ];
+        DWT1( &imageFloat[ i * width ], &imageFloat2[ i * width ], width, 1, cl, ch, coeffsNum, 0 );
+    }
+    for( uint32_t i = 0; i < width; i++ )
+        DWT1( &imageFloat2[ i ], &imageFloat[ i ], height, width, cl, ch, coeffsNum, 0 );
+
+    for( uint32_t i = 0; i < height; i++ )
+    {
+        for( uint32_t j = 0; j < width; j++ )
+        {
+            imageFloat[ i * width + j ] = fabs( imageFloat[ i * width + j ] ) > threshold ? imageFloat[ i * width + j ] : 0.0f;
+        }
+    }
+
+    for( uint32_t i = 0; i < width; i++ )
+        DWT1( &imageFloat[ i ], &imageFloat2[ i ], height, width, icl, ich, coeffsNum, coeffsNum - 2 );
+    for( uint32_t i = 0; i < height; i++ )
+    {
+        DWT1( &imageFloat2[ i * width ], &imageFloat[ i * width ], width, 1, icl, ich, coeffsNum, coeffsNum - 2 );
+        for( uint32_t j = 0; j < width; j++ )
+            outData[ j ][ i ] = imageFloat[ i * width + j ];
+    }
+
+    delete[] imageFloat;
+    delete[] imageFloat2;
+}
+
+void RenderArea::DWT( uint8_t threshold )
+{
+    DWT2( Y, Y, m_renderarea.width(), m_renderarea.height(), threshold );
+    DWT2( Cb, Cb, m_renderarea.width(), m_renderarea.height(), threshold );
+    DWT2( Cr, Cr, m_renderarea.width(), m_renderarea.height(), threshold );
+
+    for( int32_t x = 0; x < m_imageContainer.width(); x++ )
+        for( int32_t y = 0; y < m_imageContainer.height(); y++ )
+        {
+            uint8_t cb = Cb[ x ][ y ];
+            uint8_t cr = Cr[ x ][ y ];
+
+            uint8_t R = ( float )Y[ x ][ y ] + 1.402f   * ( ( float )cr - 128.0f );
+            uint8_t G = ( float )Y[ x ][ y ] - 0.34414f * ( ( float )cb - 128.0f ) - 0.71414f * ( ( float )cr - 128.0f );
+            uint8_t B = ( float )Y[ x ][ y ] + 1.772f   * ( ( float )cb - 128.0f );
+            m_renderarea.setPixel( x, y, qRgb( R, G, B ) );
+        }
+    repaint();
 }
 
 void RenderArea::ShowDsCb()

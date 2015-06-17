@@ -328,71 +328,6 @@
      <attribute name="title">
       <string>JPEG</string>
      </attribute>
-     <widget class="QPushButton" name="dctCr">
-      <property name="geometry">
-       <rect>
-        <x>140</x>
-        <y>120</y>
-        <width>99</width>
-        <height>27</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>DCT Cr</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="dsCr">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>150</y>
-        <width>131</width>
-        <height>27</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Downsampled Cr</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="dsCb">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>120</y>
-        <width>131</width>
-        <height>27</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Downsampled Cb</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="dctY">
-      <property name="geometry">
-       <rect>
-        <x>240</x>
-        <y>120</y>
-        <width>99</width>
-        <height>27</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>DCT Y</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="dctCb">
-      <property name="geometry">
-       <rect>
-        <x>140</x>
-        <y>150</y>
-        <width>99</width>
-        <height>27</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>DCT Cb</string>
-      </property>
-     </widget>
      <widget class="QGroupBox" name="groupBox">
       <property name="geometry">
        <rect>
@@ -690,7 +625,7 @@
      <widget class="QPushButton" name="pushButton">
       <property name="geometry">
        <rect>
-        <x>350</x>
+        <x>20</x>
         <y>120</y>
         <width>99</width>
         <height>27</height>
@@ -703,7 +638,7 @@
      <widget class="QLabel" name="uncompressed">
       <property name="geometry">
        <rect>
-        <x>460</x>
+        <x>140</x>
         <y>120</y>
         <width>181</width>
         <height>17</height>
@@ -716,7 +651,7 @@
      <widget class="QLabel" name="compressed">
       <property name="geometry">
        <rect>
-        <x>460</x>
+        <x>140</x>
         <y>140</y>
         <width>191</width>
         <height>17</height>
@@ -731,7 +666,7 @@
        <rect>
         <x>160</x>
         <y>98</y>
-        <width>141</width>
+        <width>171</width>
         <height>22</height>
        </rect>
       </property>
@@ -778,7 +713,7 @@
      <attribute name="title">
       <string>Wavelet</string>
      </attribute>
-     <widget class="QRadioButton" name="radioButton">
+     <widget class="QRadioButton" name="wvD2">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -791,7 +726,7 @@
        <string>D2</string>
       </property>
      </widget>
-     <widget class="QRadioButton" name="radioButton_2">
+     <widget class="QRadioButton" name="wvD4">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -804,7 +739,7 @@
        <string>D4</string>
       </property>
      </widget>
-     <widget class="QRadioButton" name="radioButton_3">
+     <widget class="QRadioButton" name="wvD6">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -817,7 +752,7 @@
        <string>D6</string>
       </property>
      </widget>
-     <widget class="QRadioButton" name="radioButton_4">
+     <widget class="QRadioButton" name="wvD8">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -865,7 +800,7 @@
      <widget class="QPushButton" name="dwtCompressBtn">
       <property name="geometry">
        <rect>
-        <x>90</x>
+        <x>100</x>
         <y>80</y>
         <width>99</width>
         <height>27</height>
@@ -873,6 +808,32 @@
       </property>
       <property name="text">
        <string>Compress</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="wvUncompressed">
+      <property name="geometry">
+       <rect>
+        <x>210</x>
+        <y>80</y>
+        <width>181</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Uncompressed: --</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="wvCompressed">
+      <property name="geometry">
+       <rect>
+        <x>210</x>
+        <y>100</y>
+        <width>191</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Compressed: --</string>
       </property>
      </widget>
     </widget>

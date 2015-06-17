@@ -15,8 +15,16 @@ QMAKE_CXXFLAGS += -std=c++11
 LIBS += -lz
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    renderarea.cpp \
+    jpeg.cpp \
+    wavelet.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    renderarea.h \
+    jpeg.h \
+    wavelet.h \
+    ycbcr.h \
+    utils.h
 
 FORMS    += mainwindow.ui

@@ -1,2 +1,3 @@
 *.o
 image_comp
+bin/*

@@ -1,8 +1,7 @@
 #pragma once
 #include <QMainWindow>
 
-#include "jpeg.h"
-#include "wavelet.h"
+#include "ycbcr.h"
 
 class RenderArea : public QWidget
 {
@@ -23,9 +22,6 @@ class RenderArea : public QWidget
         void ShowRGB();
         void ToGrayWeightAverage();
         void ToGrayCCIR601();
-
-        // wavelets
-        void DWT( uint8_t threshold );
 
         //
         QImage m_renderarea;

@@ -4,6 +4,9 @@
 #include "QMessageBox"
 #include <math.h>
 
+#include "jpeg.h"
+#include "wavelet.h"
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)

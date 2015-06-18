@@ -1,6 +1,5 @@
 #include "renderarea.h"
 #include "QPainter"
-#include "utils.h"
 
 RenderArea::RenderArea(QWidget *parent)
     : QWidget( parent )

@@ -55,6 +55,8 @@ struct YCbCr
         this->CbCrwidth = width;
         this->CbCrheight = height;
 
+        Zero();
+
         doDelete = true;
     }
 
@@ -78,6 +80,8 @@ struct YCbCr
         this->Yheight = Yheight;
         this->CbCrwidth =  CbCrwidth;
         this->CbCrheight = CbCrheight;
+
+        Zero();
 
         doDelete = true;
     }
@@ -133,6 +137,23 @@ private:
         Y = nullptr;
         Cb = nullptr;
         Cr = nullptr;
+    }
+
+    void Zero()
+    {
+        if( !Y || !Cb || !Cr )
+            return;
+
+        for( uint32_t x = 0; x < Ywidth; x++ )
+            for( uint32_t y = 0; y < Yheight; y++ )
+                Y[ x ][ y ] = 0;
+
+        for( uint32_t x = 0; x < CbCrwidth; x++ )
+            for( uint32_t y = 0; y < CbCrheight; y++ )
+            {
+                Cb[ x ][ y ] = 0;
+                Cr[ x ][ y ] = 0;
+            }
     }
 };
 

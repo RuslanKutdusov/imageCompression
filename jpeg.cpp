@@ -279,7 +279,7 @@ namespace jpeg
                     {
                         return fabs( a.val ) > fabs( b.val );
                     });
-                for( uint32_t i = 0; i < n; i++ )
+                for( uint32_t i = 0; i < n && i < 64; i++ )
                 {
                     outData[ bx * 8 + toSort[ i ].i ][ by * 8 + toSort[ i ].j ] = toSort[ i ].val;
                 }

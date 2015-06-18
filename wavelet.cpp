@@ -16,6 +16,8 @@ namespace wavelet
     const int32_t g_waveletCoeffsNum[ WAVELET_COUNT ] = { 2, 4, 6, 8 };
     const uint32_t MIN_WIDTH_HEIGHT = 16;
 
+    typedef int16_t quant_t;
+
 
     //
     struct Compressed
@@ -145,7 +147,7 @@ namespace wavelet
 
 
     //
-    void QuantizationThreshold( const float* inImageFloat, int32_t* outImageInt, uint32_t length, uint32_t threshold )
+    void QuantizationThreshold( const float* inImageFloat, quant_t* outImageInt, uint32_t length, uint32_t threshold )
     {
         for( uint32_t i = 0; i < length; i++ )
             outImageInt[ i ] = fabs( inImageFloat[ i ] ) > threshold ? inImageFloat[ i ] : 0.0f;
@@ -153,7 +155,7 @@ namespace wavelet
 
 
     //
-    void DequantizationThreshold( const int32_t* inImageInt, float* outImageFloat, uint32_t length )
+    void DequantizationThreshold( const quant_t* inImageInt, float* outImageFloat, uint32_t length )
     {
         for( uint32_t i = 0; i < length; i++ )
             outImageFloat[ i ] = inImageInt[ i ];
@@ -216,10 +218,10 @@ namespace wavelet
         uint32_t length = width * height;
         float* imageFloat = new float[ length ];
         float* temp = new float[ length ];
-        int32_t* imageInt = new int32_t[ length ];
+        quant_t* imageInt = new quant_t[ length ];
 
-        uint8_t* compressed = new uint8_t[ length * sizeof( int32_t ) ];
-        uLongf l_compressedLength = compressBound( length * sizeof( int32_t ) );
+        uint8_t* compressed = new uint8_t[ length * sizeof( quant_t ) ];
+        uLongf l_compressedLength = compressBound( length * sizeof( quant_t ) );
 
         for( uint32_t i = 0; i < height; i++ )
         {
@@ -230,7 +232,7 @@ namespace wavelet
         // compress
         DWT2_recursive( imageFloat, temp, width, height, width, cl, ch, coeffsNum );
         QuantizationThreshold( imageFloat, imageInt, length, threshold );
-        compress( ( Bytef* )compressed, &l_compressedLength, ( const Bytef* )imageInt, length * sizeof( int32_t ) );
+        compress( ( Bytef* )compressed, &l_compressedLength, ( const Bytef* )imageInt, length * sizeof( quant_t ) );
 
         delete[] imageFloat;
         delete[] temp;
@@ -270,8 +272,8 @@ namespace wavelet
         uint32_t length = width * height;
         float* imageFloat = new float[ length ];
         float* temp = new float[ length ];
-        int32_t* imageInt = new int32_t[ length ];
-        uLongf decompLength = length * sizeof( int32_t );
+        quant_t* imageInt = new quant_t[ length ];
+        uLongf decompLength = length * sizeof( quant_t );
 
         // decompress
         uncompress( ( Bytef* )imageInt, &decompLength, ( const Bytef* )compressed, compressedLength );

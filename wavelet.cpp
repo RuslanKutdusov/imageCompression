@@ -20,11 +20,16 @@ namespace wavelet
 
 
     //
-    struct Compressed
+    struct CompressedHeader
     {
-        uint32_t yCompLength = 0;
-        uint32_t cbCompLength = 0;
-        uint32_t crCompLength = 0;
+        uint32_t    yCompLength;
+        uint32_t    cbCompLength;
+        uint32_t    crCompLength;
+        WAVELET     wavelet;
+        uint32_t    Ywidth;
+        uint32_t    Yheight;
+        uint32_t    CbCrwidth;
+        uint32_t    CbCrheight;
     };
 
 
@@ -306,46 +311,46 @@ namespace wavelet
         uint8_t* yComp  = DWT2Compress( input.Y,  input.Ywidth,     input.Yheight,      threshold, wavelet, yCompLength );
         uint8_t* cbComp = DWT2Compress( input.Cb, input.CbCrwidth,  input.CbCrheight,   threshold, wavelet, cbCompLength );
         uint8_t* crComp = DWT2Compress( input.Cr, input.CbCrwidth,  input.CbCrheight,   threshold, wavelet, crCompLength );
-        compressedLength = yCompLength + cbCompLength + crCompLength + sizeof( uint32_t ) * 8;
-        uint32_t* ret = new uint32_t[ compressedLength ];
-        ret[ 0 ] = yCompLength;
-        ret[ 1 ] = cbCompLength;
-        ret[ 2 ] = crCompLength;
-        ret[ 3 ] = wavelet;
-        ret[ 4 ] = input.Ywidth;
-        ret[ 5 ] = input.Yheight;
-        ret[ 6 ] = input.CbCrwidth;
-        ret[ 7 ] = input.CbCrheight;
-        uint8_t* p = ( uint8_t* )ret;
-        memcpy( &p[ 8 * 4 ], yComp, yCompLength );
-        memcpy( &p[ 8 * 4 + yCompLength ], cbComp, cbCompLength );
-        memcpy( &p[ 8 * 4 + yCompLength + cbCompLength ], crComp, crCompLength );
+        compressedLength = yCompLength + cbCompLength + crCompLength + sizeof( CompressedHeader );
+        uint8_t* ret = new uint8_t[ compressedLength ];
+        CompressedHeader* header = ( CompressedHeader* )ret;
+        header->yCompLength = yCompLength;
+        header->cbCompLength = cbCompLength;
+        header->crCompLength = crCompLength;
+        header->wavelet = wavelet;
+        header->Ywidth = input.Ywidth;
+        header->Yheight = input.Yheight;
+        header->CbCrwidth = input.CbCrwidth;
+        header->CbCrheight = input.CbCrheight;
+        memcpy( ret + sizeof( CompressedHeader ), yComp, yCompLength );
+        memcpy( ret + sizeof( CompressedHeader ) + yCompLength, cbComp, cbCompLength );
+        memcpy( ret + sizeof( CompressedHeader ) + yCompLength + cbCompLength, crComp, crCompLength );
 
         delete[] yComp;
         delete[] cbComp;
         delete[] crComp;
 
 
-        return p;
+        return ret;
     }
 
 
     //
     void Decompress( uint8_t* compressed, YCbCr_ubyte& output )
     {
-        uint32_t* p = ( uint32_t* )compressed;
-        uint32_t yCompLength = p[ 0 ];
-        uint32_t cbCompLength = p[ 1 ];
-        uint32_t crCompLength = p[ 2 ];
-        WAVELET wavelet = ( WAVELET )p[ 3 ];
-        output.Ywidth     = p[ 4 ];
-        output.Yheight    = p[ 5 ];
-        output.CbCrwidth  = p[ 6 ];
-        output.CbCrheight = p[ 7 ];
+        CompressedHeader* header = ( CompressedHeader* )compressed;
+        uint32_t yCompLength  = header->yCompLength;
+        uint32_t cbCompLength = header->cbCompLength;
+        uint32_t crCompLength = header->crCompLength;
+        WAVELET wavelet   = header->wavelet;
+        output.Ywidth     = header->Ywidth;
+        output.Yheight    = header->Yheight;
+        output.CbCrwidth  = header->CbCrwidth;
+        output.CbCrheight = header->CbCrheight;
 
-        DWT2Decompress( &compressed[ 8 * 4 ],                               yCompLength,    output.Ywidth, output.Yheight,          wavelet, output.Y );
-        DWT2Decompress( &compressed[ 8 * 4 + yCompLength],                  cbCompLength,   output.CbCrwidth, output.CbCrheight,    wavelet, output.Cb );
-        DWT2Decompress( &compressed[ 8 * 4 + yCompLength + cbCompLength ],  crCompLength,   output.CbCrwidth, output.CbCrheight,    wavelet, output.Cr );
+        DWT2Decompress( compressed + sizeof( CompressedHeader ),                               yCompLength,    output.Ywidth,    output.Yheight,        wavelet, output.Y );
+        DWT2Decompress( compressed + sizeof( CompressedHeader ) + yCompLength,                 cbCompLength,   output.CbCrwidth, output.CbCrheight,    wavelet, output.Cb );
+        DWT2Decompress( compressed + sizeof( CompressedHeader ) + yCompLength + cbCompLength,  crCompLength,   output.CbCrwidth, output.CbCrheight,    wavelet, output.Cr );
     }
 
 } // wavelet

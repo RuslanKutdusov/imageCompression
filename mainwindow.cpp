@@ -230,14 +230,17 @@ void MainWindow::on_pushButton_clicked()
         return;
     }
 
-    uint32_t uc, c;
-    jpeg::Compress( imageWidget1->m_ycbcr, imageWidget2->m_ycbcr, ds, q, qParam1, qParam2, qParam3, qParam4, uc, c );
+    uint32_t compressedLength;
+    uint8_t* compressed = jpeg::Compress( imageWidget1->m_ycbcr, ds, q, qParam1, qParam2, qParam3, qParam4, compressedLength );
+    jpeg::Decompress( compressed, compressedLength, imageWidget2->m_ycbcr );
+    delete[] compressed;
     imageWidget2->YCbCr2RGB();
     imageWidget2->Render();
+
     char buf[ 1024 ];
-    sprintf( buf, "Uncompressed: %u", uc / 1024 );
+    sprintf( buf, "Uncompressed: %u", imageWidget1->m_ycbcr.Ywidth * imageWidget1->m_ycbcr.Yheight * 3 / 1024 );
     ui->uncompressed->setText( buf );
-    sprintf( buf, "Compressed: %u", c / 1024 );
+    sprintf( buf, "Compressed: %u", compressedLength / 1024 );
     ui->compressed->setText( buf );
 }
 

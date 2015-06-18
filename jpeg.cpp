@@ -7,7 +7,29 @@
 
 namespace jpeg
 {
+    //
+    typedef int16_t quant_t;
+    typedef YCbCr< quant_t > YCbCr_quant;
 
+    //
+    struct CompressedHeader
+    {
+        uLongf          yCompLength;
+        uLongf          cbCompLength;
+        uLongf          crCompLength;
+        DOWNSAMPLING    downsampling;
+        QUANTIZATION    quantization;
+        uint32_t        param1;
+        uint32_t        param2;
+        uint32_t        param3;
+        uint32_t        param4;
+        uint32_t        Ywidth;
+        uint32_t        Yheight;
+        uint32_t        CbCrwidth;
+        uint32_t        CbCrheight;
+    };
+
+    //
     const float g_stdQuantizationMatrixY[ 8 ][ 8 ] = {
         { 16.0f,   11.0f,   10.0f,   16.0f,   24.0f,   40.0f,   51.0f,   61.0f  },
         { 12.0f,   12.0f,   14.0f,   19.0f,   26.0f,   58.0f,   60.0f,   55.0f  },
@@ -66,6 +88,7 @@ namespace jpeg
     float DCT_MATRIX[ 8 ][ 8 ];
     bool g_inited = false;
 
+
     //
     void Init()
     {
@@ -85,7 +108,7 @@ namespace jpeg
 
 
     //
-    void Downsampling( DOWNSAMPLING downsampling, const YCbCr_ubyte& input, YCbCr_ubyte& downsampledOutput )
+    void DownsamplingAndInitOutput( DOWNSAMPLING downsampling, const YCbCr_ubyte& input, YCbCr_ubyte& downsampledOutput )
     {
         uint32_t xStep = 1;
         uint32_t yStep = 1;
@@ -135,6 +158,46 @@ namespace jpeg
 
 
     //
+    void UpsamplingAndClamp( const YCbCr_int& input, YCbCr_ubyte& output, DOWNSAMPLING downsampling )
+    {
+        uint32_t xStep = 1;
+        uint32_t yStep = 1;
+        if( downsampling == DOWNSAMPLING_NONE )
+        {
+        }
+        else if( downsampling == DOWNSAMPLING_2h2v )
+        {
+            xStep = 2;
+            yStep = 2;
+        }
+        else if( downsampling == DOWNSAMPLING_2h1v )
+        {
+            xStep = 2;
+            yStep = 1;
+        }
+        else if( downsampling == DOWNSAMPLING_1h2v )
+        {
+            xStep = 1;
+            yStep = 2;
+        }
+
+        //
+        for( uint32_t x = 0; x < input.Ywidth; x++ )
+            for( uint32_t y = 0; y < input.Yheight; y++ )
+            {
+                output.Y[ x ][ y ] = clamp( input.Y[ x ][ y ], 0, 255 );
+                output.Cb[ x ][ y ] = clamp( input.Cb[ x / xStep ][ y / yStep ], 0, 255 );
+                output.Cr[ x ][ y ] = clamp( input.Cr[ x / xStep ][ y / yStep ], 0, 255 );
+            }
+
+        output.Ywidth       = input.Ywidth;
+        output.Yheight      = input.Yheight;
+        output.CbCrwidth    = input.CbCrwidth;
+        output.CbCrheight   = input.CbCrheight;
+    }
+
+
+    //
     void DCT( uint8_t** inData, float** outDct, uint32_t width, uint32_t height )
     {
         for( uint32_t bx = 0; bx < width / 8; bx++ )
@@ -160,6 +223,8 @@ namespace jpeg
             }
     }
 
+
+    //
     void IDCT( float** inDct, int32_t** outData, uint32_t width, uint32_t height )
     {
         for( uint32_t bx = 0; bx < width / 8; bx++ )
@@ -185,7 +250,9 @@ namespace jpeg
             }
     }
 
-    void QuantizationMax( float** inData, int32_t** outData, uint32_t width, uint32_t height, uint32_t n )
+
+    //
+    void QuantizationMax( float** inData, quant_t** outData, uint32_t width, uint32_t height, uint32_t n )
     {
         struct ToSort
         {
@@ -219,7 +286,9 @@ namespace jpeg
             }
     }
 
-    void QuantizationMatrix( float** inData, int32_t** outData, uint32_t width, uint32_t height, const float matrix[ 8 ][ 8 ] )
+
+    //
+    void QuantizationMatrix( float** inData, quant_t** outData, uint32_t width, uint32_t height, const float matrix[ 8 ][ 8 ] )
     {
         for( uint32_t bx = 0; bx < width / 8; bx++ )
             for( uint32_t by = 0; by < height / 8; by++ )
@@ -230,7 +299,9 @@ namespace jpeg
             }
     }
 
-    void QuantizationAlfaGamma( float** inData, int32_t** outData, uint32_t width, uint32_t height, uint32_t alfa, uint32_t gamma )
+
+    //
+    void QuantizationAlfaGamma( float** inData, quant_t** outData, uint32_t width, uint32_t height, uint32_t alfa, uint32_t gamma )
     {
         float q[ 8 ][ 8 ];
         for( uint32_t i = 0; i < 8; i++ )
@@ -239,7 +310,42 @@ namespace jpeg
         QuantizationMatrix( inData, outData, width, height, q );
     }
 
-    void ZigZag( int32_t** inData, int32_t* outData, int32_t width, int32_t height )
+
+    //
+    void DequantizationMax( quant_t** inData, float** outData, uint32_t width, uint32_t height, uint32_t n )
+    {
+        for( uint32_t i = 0; i < width; i++ )
+            for( uint32_t j = 0; j < height; j++ )
+                outData[ i ][ j ] = inData[ i ][ j ];
+    }
+
+
+    //
+    void DequantizationMatrix( quant_t** inData, float** outData, uint32_t width, uint32_t height, const float matrix[ 8 ][ 8 ] )
+    {
+        for( uint32_t bx = 0; bx < width / 8; bx++ )
+            for( uint32_t by = 0; by < height / 8; by++ )
+            {
+                for( uint32_t i = 0; i < 8; i++ )
+                    for( uint32_t j = 0; j < 8; j++ )
+                        outData[ bx * 8 + i ][ by * 8 + j ] = inData[ bx * 8 + i ][ by * 8 + j ] * matrix[ i ][ j ];
+            }
+    }
+
+
+    //
+    void DequantizationAlfaGamma( quant_t** inData, float** outData, uint32_t width, uint32_t height, uint32_t alfa, uint32_t gamma )
+    {
+        float q[ 8 ][ 8 ];
+        for( uint32_t i = 0; i < 8; i++ )
+            for( uint32_t j = 0; j < 8; j++ )
+                q[ i ][ j ] = alfa * ( 1 + gamma * ( i + j + 2 ) );
+        DequantizationMatrix( inData, outData, width, height, q );
+    }
+
+
+    //
+    void ZigZag( quant_t** inData, quant_t* outData, int32_t width, int32_t height )
     {
         int32_t totalCounter = 0;
         for( int32_t bx = 0; bx < width / 8; bx++ )
@@ -255,80 +361,41 @@ namespace jpeg
             }
     }
 
-    //void Upsampling( DOWNSAMPLING downsampling )
-    //{
-    //    uint32_t xStep = 1;
-    //    uint32_t yStep = 1;
-    //    if( downsampling == DOWNSAMPLING_NONE )
-    //    {
-    //    }
-    //    else if( downsampling == DOWNSAMPLING_2h2v )
-    //    {
-    //        xStep = 2;
-    //        yStep = 2;
-    //    }
-    //    else if( downsampling == DOWNSAMPLING_2h1v )
-    //    {
-    //        xStep = 2;
-    //        yStep = 1;
-    //    }
-    //    else if( downsampling == DOWNSAMPLING_1h2v )
-    //    {
-    //        xStep = 1;
-    //        yStep = 2;
-    //    }
 
-    //    //
-    //    for( int32_t x = 0; x < m_imageContainer.width(); x++ )
-    //        for( int32_t y = 0; y < m_imageContainer.height(); y++ )
-    //        {
-    //            Cb[ x ][ y ] = dsCb[ x / xStep ][ y / yStep ];
-    //            Cr[ x ][ y ] = dsCr[ x / xStep ][ y / yStep ];
-    //        }
-    //}
-
-    void DequantizationMax( int32_t** inData, float** outData, uint32_t width, uint32_t height, uint32_t n )
+    //
+    void DeZigZag( quant_t* inData, quant_t** outData, int32_t width, int32_t height )
     {
-        for( uint32_t i = 0; i < width; i++ )
-            for( uint32_t j = 0; j < height; j++ )
-                outData[ i ][ j ] = inData[ i ][ j ];
-    }
-
-    void DequantizationMatrix( int32_t** inData, float** outData, uint32_t width, uint32_t height, const float matrix[ 8 ][ 8 ] )
-    {
-        for( uint32_t bx = 0; bx < width / 8; bx++ )
-            for( uint32_t by = 0; by < height / 8; by++ )
+        int32_t totalCounter = 0;
+        for( int32_t bx = 0; bx < width / 8; bx++ )
+            for( int32_t by = 0; by < height / 8; by++ )
             {
-                for( uint32_t i = 0; i < 8; i++ )
-                    for( uint32_t j = 0; j < 8; j++ )
-                        outData[ bx * 8 + i ][ by * 8 + j ] = inData[ bx * 8 + i ][ by * 8 + j ] * matrix[ i ][ j ];
+               for( int32_t c = 0; c < 64; c++ )
+               {
+                   uint32_t index = g_zigzagMap[ c ];
+                   uint32_t i = index / 8;
+                   uint32_t j = index % 8;
+                   outData[ bx * 8 + i ][ by * 8 + j ] = inData[ totalCounter++ ];
+               }
             }
     }
 
-    void DequantizationAlfaGamma( int32_t** inData, float** outData, uint32_t width, uint32_t height, uint32_t alfa, uint32_t gamma )
-    {
-        float q[ 8 ][ 8 ];
-        for( uint32_t i = 0; i < 8; i++ )
-            for( uint32_t j = 0; j < 8; j++ )
-                q[ i ][ j ] = alfa * ( 1 + gamma * ( i + j + 2 ) );
-        DequantizationMatrix( inData, outData, width, height, q );
-    }
 
-    void Compress( YCbCr_ubyte& input, YCbCr_ubyte& output, DOWNSAMPLING downsampling, QUANTIZATION quantization, uint32_t qParam1, uint32_t qParam2, uint32_t qParam3, uint32_t qParam4, uint32_t& uncompressed, uint32_t& compressed)
+    //
+    uint8_t* Compress( YCbCr_ubyte& input, DOWNSAMPLING downsampling, QUANTIZATION quantization, uint32_t qParam1, uint32_t qParam2, uint32_t qParam3, uint32_t qParam4, uint32_t& compressedLength )
     {
         if( input.Ywidth != input.Yheight )
         {
             // only square images
-            return;
+            return nullptr;
         }
 
         Init();
 
         YCbCr_ubyte downsampled;
         YCbCr_float dct;
-        YCbCr_int quantized;
+        YCbCr_quant quantized;
 
-        Downsampling( downsampling, input, downsampled );
+        DownsamplingAndInitOutput( downsampling, input, downsampled );
 
         dct.Init( downsampled.Ywidth, downsampled.Yheight, downsampled.CbCrwidth, downsampled.CbCrheight );
         quantized.Init( downsampled.Ywidth, downsampled.Yheight, downsampled.CbCrwidth, downsampled.CbCrheight );
@@ -340,117 +407,128 @@ namespace jpeg
         if( quantization == QUANTIZATION_MAX )
         {
             QuantizationMax( dct.Y,  quantized.Y,   downsampled.Ywidth,     downsampled.Yheight,    qParam1 );
-            QuantizationMax( dct.Cb, quantized.Cr,  downsampled.CbCrwidth,  downsampled.CbCrheight, qParam2 );
-            QuantizationMax( dct.Cr, quantized.Cb,  downsampled.CbCrwidth,  downsampled.CbCrheight, qParam2 );
+            QuantizationMax( dct.Cb, quantized.Cb,  downsampled.CbCrwidth,  downsampled.CbCrheight, qParam2 );
+            QuantizationMax( dct.Cr, quantized.Cr,  downsampled.CbCrwidth,  downsampled.CbCrheight, qParam2 );
         }
         else if( quantization == QUANTIZATION_ALFA_GAMMMA )
         {
             QuantizationAlfaGamma( dct.Y,   quantized.Y,  downsampled.Ywidth,     downsampled.Yheight,      qParam1, qParam2 );
-            QuantizationAlfaGamma( dct.Cb,  quantized.Cr, downsampled.CbCrwidth,  downsampled.CbCrheight,   qParam3, qParam4 );
-            QuantizationAlfaGamma( dct.Cr,  quantized.Cb, downsampled.CbCrwidth,  downsampled.CbCrheight,   qParam3, qParam4 );
+            QuantizationAlfaGamma( dct.Cb,  quantized.Cb, downsampled.CbCrwidth,  downsampled.CbCrheight,   qParam3, qParam4 );
+            QuantizationAlfaGamma( dct.Cr,  quantized.Cr, downsampled.CbCrwidth,  downsampled.CbCrheight,   qParam3, qParam4 );
         }
         else if( quantization == QUANTIZATION_STD_MATRIX )
         {
             QuantizationMatrix( dct.Y,   quantized.Y,  downsampled.Ywidth,     downsampled.Yheight,     g_stdQuantizationMatrixY );
-            QuantizationMatrix( dct.Cb,  quantized.Cr, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCr );
-            QuantizationMatrix( dct.Cr,  quantized.Cb, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCr );
+            QuantizationMatrix( dct.Cb,  quantized.Cb, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCr );
+            QuantizationMatrix( dct.Cr,  quantized.Cr, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCr );
         }
         else if( quantization == QUANTIZATION_STD_MATRIX_HALF )
         {
             QuantizationMatrix( dct.Y,   quantized.Y,  downsampled.Ywidth,     downsampled.Yheight,     g_stdQuantizationMatrixYHalf );
-            QuantizationMatrix( dct.Cb,  quantized.Cr, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCrHalf );
-            QuantizationMatrix( dct.Cr,  quantized.Cb, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCrHalf );
+            QuantizationMatrix( dct.Cb,  quantized.Cb, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCrHalf );
+            QuantizationMatrix( dct.Cr,  quantized.Cr, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCrHalf );
         }
 
-        int32_t YLine[ 512 * 512 ];
-        int32_t CbLine[ 512 * 512 ];
-        int32_t CrLine[ 512 * 512 ];
-        uint32_t YLineLength =  downsampled.Ywidth * downsampled.Yheight * sizeof( int32_t );
-        uint32_t CbLineLength = downsampled.CbCrwidth * downsampled.CbCrheight * sizeof( int32_t );
-        uint32_t CrLineLength = downsampled.CbCrwidth * downsampled.CbCrheight * sizeof( int32_t );
+        uint32_t maxCompressedLength = downsampled.Ywidth * downsampled.Yheight * 3 * sizeof( quant_t );
+        uint8_t* compressed = new uint8_t[ maxCompressedLength + sizeof( CompressedHeader )];
 
-        ZigZag( quantized.Y,    YLine,  downsampled.Ywidth,     downsampled.Yheight  );
-        ZigZag( quantized.Cb,   CbLine, downsampled.CbCrwidth,  downsampled.CbCrheight );
-        ZigZag( quantized.Cr,   CrLine, downsampled.CbCrwidth,  downsampled.CbCrheight );
+        CompressedHeader* header = ( CompressedHeader* )compressed;
+        header->yCompLength     = compressBound( downsampled.Ywidth * downsampled.Yheight * sizeof( quant_t ) ); // Y compressed length
+        header->cbCompLength    = compressBound( downsampled.CbCrwidth * downsampled.CbCrheight * sizeof( quant_t ) ); // Cb compressed length
+        header->crCompLength    = header->cbCompLength; // Cr compressed length
+        header->downsampling    = downsampling;
+        header->quantization    = quantization;
+        header->param1          = qParam1;
+        header->param2          = qParam2;
+        header->param3          = qParam3;
+        header->param4          = qParam4;
+        header->Ywidth          = downsampled.Ywidth;
+        header->Yheight         = downsampled.Yheight;
+        header->CbCrwidth       = downsampled.CbCrwidth;
+        header->CbCrheight      = downsampled.CbCrheight;
 
-        uint8_t YCompressed[ 512 * 512 ];
-        uint8_t CbCompressed[ 512 * 512 ];
-        uint8_t CrCompressed[ 512 * 512 ];
-        uLongf YCompressedLength = compressBound( YLineLength );
-        uLongf CbCompressedLength = compressBound( CbLineLength );
-        uLongf CrCompressedLength = compressBound( CrLineLength );
-        //Deflate( YLine, YLineLength, YCompressedline, YCompressedLength );
-        //Deflate( CbLine, CbLineLength, CbCompressedLine, CbCompressedLength );
-        //Deflate( CrLine, CrLineLength, CrCompressedLine, CrCompressedLength );
-        compress( ( Bytef* )YCompressed,  &YCompressedLength,  ( const Bytef* )YLine, YLineLength );
-        compress( ( Bytef* )CbCompressed, &CbCompressedLength, ( const Bytef* )CbLine, CbLineLength );
-        compress( ( Bytef* )CrCompressed, &CrCompressedLength, ( const Bytef* )CrLine, CrLineLength );
-        uncompressed = YLineLength + CbLineLength + CrLineLength;
-        compressed = YCompressedLength + CbCompressedLength + CrCompressedLength;
+        quant_t* line = new quant_t[ downsampled.Ywidth * downsampled.Yheight ];
+
+        uint32_t lineLength =  downsampled.Ywidth * downsampled.Yheight * sizeof( quant_t );
+        ZigZag( quantized.Y,    line,  downsampled.Ywidth,     downsampled.Yheight  );
+        compress( ( Bytef* )( compressed + sizeof( CompressedHeader ) ),  &header->yCompLength,  ( const Bytef* )line, lineLength );
+        compressedLength = header->yCompLength;
+
+        lineLength =  downsampled.CbCrwidth * downsampled.CbCrheight * sizeof( quant_t );
+        ZigZag( quantized.Cb,    line,  downsampled.CbCrwidth,     downsampled.CbCrheight  );
+        compress( ( Bytef* )( compressed + sizeof( CompressedHeader ) + header->yCompLength ),  &header->cbCompLength,  ( const Bytef* )line, lineLength );
+        compressedLength += header->cbCompLength;
+
+        ZigZag( quantized.Cr,    line,  downsampled.CbCrwidth,     downsampled.CbCrheight  );
+        compress( ( Bytef* )( compressed + sizeof( CompressedHeader ) + header->yCompLength + header->cbCompLength ),  &header->crCompLength,  ( const Bytef* )line, lineLength );
+        compressedLength += header->crCompLength;
+
+        delete[] line;
+
+        return compressed;
+    }
+
+
+
+    //
+    void Decompress( uint8_t* compressed, uint32_t compressedLength, YCbCr_ubyte& output )
+    {
+        CompressedHeader* header = ( CompressedHeader* )compressed;
+
+        YCbCr_quant quantitazed;
+        YCbCr_int downsampled;
+        YCbCr_float dct;
+        quantitazed.Init( header->Ywidth, header->Yheight, header->CbCrwidth, header->CbCrheight );
+        downsampled.Init( header->Ywidth, header->Yheight, header->CbCrwidth, header->CbCrheight );
+        dct.Init( header->Ywidth, header->Yheight, header->CbCrwidth, header->CbCrheight );
+
+        quant_t* line = new quant_t[ header->Ywidth * header->Yheight ];
+
+        uLongf lineLength = header->Ywidth * header->Yheight * sizeof( quant_t );
+        uncompress( ( Bytef* )line, &lineLength, ( const Bytef* )( compressed + sizeof( CompressedHeader ) ), header->yCompLength );
+        DeZigZag( line, quantitazed.Y, header->Ywidth, header->Yheight );
+
+        lineLength = header->CbCrwidth * header->CbCrheight * sizeof( quant_t );
+        uncompress( ( Bytef* )line, &lineLength, ( const Bytef* )( compressed + sizeof( CompressedHeader ) + header->yCompLength ), header->cbCompLength );
+        DeZigZag( line, quantitazed.Cb, header->CbCrwidth, header->CbCrheight );
+
+        lineLength = header->CbCrwidth * header->CbCrheight * sizeof( quant_t );
+        uncompress( ( Bytef* )line, &lineLength, ( const Bytef* )( compressed + sizeof( CompressedHeader ) + header->yCompLength + header->cbCompLength ), header->crCompLength );
+        DeZigZag( line, quantitazed.Cr, header->CbCrwidth, header->CbCrheight );
+
+        delete[] line;
 
         // decompress
-        if( quantization == QUANTIZATION_MAX )
+        if( header->quantization == QUANTIZATION_MAX )
         {
-            DequantizationMax( quantized.Y,  dct.Y,   downsampled.Ywidth,     downsampled.Yheight,    qParam1 );
-            DequantizationMax( quantized.Cr, dct.Cb,  downsampled.CbCrwidth,  downsampled.CbCrheight, qParam2 );
-            DequantizationMax( quantized.Cb, dct.Cr,  downsampled.CbCrwidth,  downsampled.CbCrheight, qParam2 );
+            DequantizationMax( quantitazed.Y,  dct.Y,   header->Ywidth,     header->Yheight,    header->param1 );
+            DequantizationMax( quantitazed.Cb, dct.Cb,  header->CbCrwidth,  header->CbCrheight, header->param2 );
+            DequantizationMax( quantitazed.Cr, dct.Cr,  header->CbCrwidth,  header->CbCrheight, header->param2 );
         }
-        else if( quantization == QUANTIZATION_ALFA_GAMMMA )
+        else if( header->quantization == QUANTIZATION_ALFA_GAMMMA )
         {
-            DequantizationAlfaGamma( quantized.Y,  dct.Y,  downsampled.Ywidth,     downsampled.Yheight,      qParam1, qParam2 );
-            DequantizationAlfaGamma( quantized.Cr, dct.Cb, downsampled.CbCrwidth,  downsampled.CbCrheight,   qParam3, qParam4 );
-            DequantizationAlfaGamma( quantized.Cb, dct.Cr, downsampled.CbCrwidth,  downsampled.CbCrheight,   qParam3, qParam4 );
+            DequantizationAlfaGamma( quantitazed.Y,  dct.Y,  header->Ywidth,     header->Yheight,      header->param1, header->param2 );
+            DequantizationAlfaGamma( quantitazed.Cb, dct.Cb, header->CbCrwidth,  header->CbCrheight,   header->param3, header->param4 );
+            DequantizationAlfaGamma( quantitazed.Cr, dct.Cr, header->CbCrwidth,  header->CbCrheight,   header->param3, header->param4 );
         }
-        else if( quantization == QUANTIZATION_STD_MATRIX )
+        else if( header->quantization == QUANTIZATION_STD_MATRIX )
         {
-            DequantizationMatrix( quantized.Y,  dct.Y,  downsampled.Ywidth,     downsampled.Yheight,     g_stdQuantizationMatrixY );
-            DequantizationMatrix( quantized.Cr, dct.Cb, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCr );
-            DequantizationMatrix( quantized.Cb, dct.Cr, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCr );
+            DequantizationMatrix( quantitazed.Y,  dct.Y,  header->Ywidth,     header->Yheight,     g_stdQuantizationMatrixY );
+            DequantizationMatrix( quantitazed.Cb, dct.Cb, header->CbCrwidth,  header->CbCrheight,  g_stdQuantizationMatrixCbCr );
+            DequantizationMatrix( quantitazed.Cr, dct.Cr, header->CbCrwidth,  header->CbCrheight,  g_stdQuantizationMatrixCbCr );
         }
-        else if( quantization == QUANTIZATION_STD_MATRIX_HALF )
+        else if( header->quantization == QUANTIZATION_STD_MATRIX_HALF )
         {
-            DequantizationMatrix(  quantized.Y,  dct.Y,  downsampled.Ywidth,     downsampled.Yheight,     g_stdQuantizationMatrixYHalf );
-            DequantizationMatrix(  quantized.Cr, dct.Cb, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCrHalf );
-            DequantizationMatrix(  quantized.Cb, dct.Cr, downsampled.CbCrwidth,  downsampled.CbCrheight,  g_stdQuantizationMatrixCbCrHalf );
-        }
-
-        YCbCr_int idct;
-        idct.Init( downsampled.Ywidth, downsampled.Yheight, downsampled.CbCrwidth, downsampled.CbCrheight );
-        IDCT( dct.Y,    idct.Y,  idct.Ywidth,     idct.Yheight );
-        IDCT( dct.Cb,   idct.Cb, idct.CbCrwidth,  idct.CbCrheight );
-        IDCT( dct.Cr,   idct.Cr, idct.CbCrwidth,  idct.CbCrheight );
-        //Upsampling( downsampling );
-        //YCbCr2RGB();
-
-        uint32_t xStep = 1;
-        uint32_t yStep = 1;
-        if( downsampling == DOWNSAMPLING_NONE )
-        {
-        }
-        else if( downsampling == DOWNSAMPLING_2h2v )
-        {
-            xStep = 2;
-            yStep = 2;
-        }
-        else if( downsampling == DOWNSAMPLING_2h1v )
-        {
-            xStep = 2;
-            yStep = 1;
-        }
-        else if( downsampling == DOWNSAMPLING_1h2v )
-        {
-            xStep = 1;
-            yStep = 2;
+            DequantizationMatrix( quantitazed.Y,  dct.Y,  header->Ywidth,     header->Yheight,     g_stdQuantizationMatrixYHalf );
+            DequantizationMatrix( quantitazed.Cb, dct.Cb, header->CbCrwidth,  header->CbCrheight,  g_stdQuantizationMatrixCbCrHalf );
+            DequantizationMatrix( quantitazed.Cr, dct.Cr, header->CbCrwidth,  header->CbCrheight,  g_stdQuantizationMatrixCbCrHalf );
         }
 
-        //
-        for( uint32_t x = 0; x < input.Ywidth; x++ )
-            for( uint32_t y = 0; y < input.Yheight; y++ )
-            {
-                output.Cb[ x ][ y ] = clamp( idct.Cb[ x / xStep ][ y / yStep ], 0, 255 );
-                output.Cr[ x ][ y ] = clamp( idct.Cr[ x / xStep ][ y / yStep ], 0, 255 );
-                output.Y[ x ][ y ]  = clamp( idct.Y[ x ][ y ], 0, 255 );
-            }
+        IDCT( dct.Y,    downsampled.Y,  dct.Ywidth,     dct.Yheight );
+        IDCT( dct.Cb,   downsampled.Cb, dct.CbCrwidth,  dct.CbCrheight );
+        IDCT( dct.Cr,   downsampled.Cr, dct.CbCrwidth,  dct.CbCrheight );
+
+        UpsamplingAndClamp( downsampled, output, header->downsampling );
     }
 
 } // namespace jpeg

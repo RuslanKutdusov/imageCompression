@@ -48,19 +48,13 @@ namespace wavelet
     //
     void GetICoeffs( const float* cl, const float* ch, int32_t n, float* icl, float* ich )
     {
-        icl[ 0 ] = cl[ n - 2 ];
-        icl[ 1 ] = ch[ n - 2 ];
-
-        ich[ 0 ] = cl[ n - 1 ];
-        ich[ 1 ] = ch[ n - 1 ];
-
-        for( int32_t k = 2; k < n; k += 2 )
+        for( int32_t k = 0; k < n; k += 2 )
         {
-            icl[ k + 0 ] = cl[ k - 2 ];
-            icl[ k + 1 ] = ch[ k - 2 ];
+            ich[ k + 0 ] = cl[ n - k - 1 ];
+            icl[ k + 0 ] = cl[ n - k - 2 ];
 
-            ich[ k + 0 ] = cl[ k - 1 ];
-            ich[ k + 1 ] = ch[ k - 1 ];
+            ich[ k + 1 ] = ch[ n - k - 1 ];
+            icl[ k + 1 ] = ch[ n - k - 2 ];
         }
     }
 
